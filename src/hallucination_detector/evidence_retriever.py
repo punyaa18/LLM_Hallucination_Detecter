@@ -3,9 +3,10 @@
 import wikipedia
 import requests
 from typing import List, Optional
-from sentence_transformers import SentenceTransformer
+import numpy as np
 
 from .data_models import Evidence, Claim
+from .ollama_client import OllamaClient, OllamaEmbeddingModel
 from config.config import EvidenceRetrievalConfig
 
 
@@ -15,7 +16,11 @@ class EvidenceRetriever:
     def __init__(
         self,
         config: EvidenceRetrievalConfig = None,
-        embedding_model: str = "all-MiniLM-L6-v2"
+        embedding_model: str = "all-MiniLM-L6-v2",
+        embedding_backend: str = "hf",
+        ollama_base_url: Optional[str] = None,
+        ollama_timeout: int = 30,
+        ollama_embedding_model: Optional[str] = None,
     ):
         """Initialize evidence retriever.
         
@@ -24,7 +29,19 @@ class EvidenceRetriever:
             embedding_model: Name of embedding model for relevance scoring.
         """
         self.config = config or EvidenceRetrievalConfig()
-        self.embedding_model = SentenceTransformer(embedding_model)
+        self.embedding_backend = embedding_backend
+
+        if self.embedding_backend == "ollama":
+            base_url = ollama_base_url or "http://localhost:11434"
+            model_name = ollama_embedding_model or embedding_model
+            self.embedding_model = OllamaEmbeddingModel(
+                OllamaClient(base_url=base_url, timeout=ollama_timeout),
+                model_name,
+            )
+        else:
+            from sentence_transformers import SentenceTransformer
+            self.embedding_model = SentenceTransformer(embedding_model)
+
         self.wikipedia = WikipediaRetriever(config)
     
     def retrieve_evidence(self, claim: Claim, num_results: int = 3) -> List[Evidence]:
@@ -87,10 +104,10 @@ class EvidenceRetriever:
         """
         try:
             # Get embeddings
-            claim_embedding = self.embedding_model.encode(claim_text)
+            claim_embedding = np.array(self.embedding_model.encode(claim_text))
             
             for evidence in evidence_list:
-                evidence_embedding = self.embedding_model.encode(evidence.text)
+                evidence_embedding = np.array(self.embedding_model.encode(evidence.text))
                 
                 # Calculate cosine similarity
                 from scipy.spatial.distance import cosine

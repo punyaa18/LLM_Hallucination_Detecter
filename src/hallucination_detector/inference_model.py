@@ -1,9 +1,16 @@
 """Module for NLI and semantic similarity inference."""
 
-import torch
 from typing import Tuple, List
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
-from sentence_transformers import SentenceTransformer, util
+
+try:
+    import torch
+    from transformers import AutoTokenizer, AutoModelForSequenceClassification
+    from sentence_transformers import SentenceTransformer, util
+    _HF_AVAILABLE = True
+    _HF_IMPORT_ERROR = None
+except Exception as exc:
+    _HF_AVAILABLE = False
+    _HF_IMPORT_ERROR = exc
 
 from config.config import InferenceConfig
 
@@ -24,6 +31,13 @@ class InferenceModel:
             device: Device to run model on (cpu or cuda).
             config: Configuration for inference.
         """
+        if not _HF_AVAILABLE:
+            raise RuntimeError(
+                "Hugging Face NLI dependencies are not available. "
+                "Install torch, transformers, and sentence-transformers "
+                "or use the Ollama backend."
+            ) from _HF_IMPORT_ERROR
+
         self.device = device
         self.config = config or InferenceConfig()
         

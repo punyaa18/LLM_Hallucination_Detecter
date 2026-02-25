@@ -12,10 +12,20 @@ class DetectorConfig:
     nli_model_name: str = "roberta-large-mnli"
     nli_device: str = "cpu"
     nli_batch_size: int = 32
+    nli_backend: str = "hf"  # "hf" or "ollama"
     
     # Embedding model configuration
     embedding_model_name: str = "all-MiniLM-L6-v2"
     embedding_device: str = "cpu"
+    embedding_backend: str = "hf"  # "hf" or "ollama"
+
+    # Ollama configuration
+    ollama_base_url: str = "http://localhost:11434"
+    ollama_nli_model: str = "llama3.2:latest"
+    ollama_embedding_model: str = "nomic-embed-text:latest"
+    ollama_timeout: int = 30
+    ollama_nli_temperature: float = 0.0
+    ollama_nli_max_tokens: int = 128
     
     # Claim extraction
     claim_extraction_model: str = "gpt2"  # Can be replaced with more advanced models

@@ -6,6 +6,7 @@ import json
 from .claim_extractor import ClaimExtractor
 from .evidence_retriever import EvidenceRetriever
 from .inference_model import InferenceModel
+from .ollama_inference import OllamaInferenceModel
 from .scoring import HallucinationScorer
 from .data_models import (
     Claim,
@@ -31,12 +32,26 @@ class HallucinationDetector:
         # Initialize components
         self.claim_extractor = ClaimExtractor()
         self.evidence_retriever = EvidenceRetriever(
-            embedding_model=self.config.embedding_model_name
+            embedding_model=self.config.embedding_model_name,
+            embedding_backend=self.config.embedding_backend,
+            ollama_base_url=self.config.ollama_base_url,
+            ollama_timeout=self.config.ollama_timeout,
+            ollama_embedding_model=self.config.ollama_embedding_model,
         )
-        self.inference_model = InferenceModel(
-            nli_model_name=self.config.nli_model_name,
-            device=self.config.nli_device
-        )
+
+        if self.config.nli_backend == "ollama":
+            self.inference_model = OllamaInferenceModel(
+                model_name=self.config.ollama_nli_model,
+                base_url=self.config.ollama_base_url,
+                timeout=self.config.ollama_timeout,
+                temperature=self.config.ollama_nli_temperature,
+                max_tokens=self.config.ollama_nli_max_tokens,
+            )
+        else:
+            self.inference_model = InferenceModel(
+                nli_model_name=self.config.nli_model_name,
+                device=self.config.nli_device
+            )
         self.scorer = HallucinationScorer(config)
     
     def detect(self, text: str) -> HallucinationReport:

@@ -4,6 +4,7 @@ from .detector import HallucinationDetector
 from .claim_extractor import ClaimExtractor
 from .evidence_retriever import EvidenceRetriever
 from .inference_model import InferenceModel
+from .ollama_inference import OllamaInferenceModel
 from .scoring import HallucinationScorer
 from .data_models import (
     Claim,
@@ -18,6 +19,7 @@ __all__ = [
     "ClaimExtractor",
     "EvidenceRetriever",
     "InferenceModel",
+    "OllamaInferenceModel",
     "HallucinationScorer",
     "Claim",
     "Evidence",
