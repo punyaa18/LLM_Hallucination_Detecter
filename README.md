@@ -61,3 +61,58 @@ python examples/prepare_visual_data.py --analyze-live --nli-backend ollama
 ```bash
 pytest tests/test_visual_signals.py tests/test_prepare_visual_data.py -q
 ```
+
+## Tri-LLM hallucination benchmark (OpenAI + 2 local Ollama models)
+
+This framework sends each prompt to three models:
+- OpenAI model (API)
+- Ollama Model A (local)
+- Ollama Model B (local)
+
+For each model per prompt it computes:
+- Consistency score (0-100)
+- Hallucination risk (Low/Medium/High)
+- Overconfidence score (0-100)
+- Estimated incorrectness level
+
+It also detects:
+- Factual divergence and cross-model contradiction patterns
+- Fabricated details and unsupported specific claims
+- Overconfident tone without uncertainty markers
+- Cases where a model should have said "I don't know" but speculated
+
+Run benchmark:
+
+```bash
+python examples/tri_llm_benchmark.py \
+	--openai-model gpt-4o-mini \
+	--ollama-model-a llama3.2:latest \
+	--ollama-model-b mistral:latest \
+	--prompts-file examples/prompts.txt \
+	--num-prompts 5 \
+	--high-risk-threshold 70 \
+	--medium-risk-threshold 40 \
+	--output tri_llm_benchmark_results.json
+```
+
+Alternative prompt input:
+
+```bash
+python examples/tri_llm_benchmark.py \
+	--openai-model gpt-4o-mini \
+	--ollama-model-a llama3.2:latest \
+	--ollama-model-b mistral:latest \
+	--prompts-json '["Prompt 1", "Prompt 2"]'
+```
+
+Output includes:
+- Full prompt-by-prompt responses and metrics in JSON
+- Final benchmark summary and most reliable model
+- Hallucination and overconfidence frequencies
+- Analytical conclusion and mitigation strategies (RAG grounding, calibrated refusal, confidence gating)
+
+Run tri-LLM unit tests:
+
+```bash
+pytest tests/test_tri_llm_framework.py -q
+```
