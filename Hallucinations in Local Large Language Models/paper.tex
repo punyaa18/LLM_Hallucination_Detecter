@@ -17,7 +17,7 @@ Email: punyaa184@gmail.com}}
 \maketitle
 
 \begin{abstract}
-Large language models (LLMs) can generate fluent responses that appear correct while containing factual errors, a behavior commonly termed hallucination. Prior work has focused heavily on cloud-hosted systems, while local deployments remain comparatively under-studied. This paper examines hallucination behavior in local Ollama-based workflows using \texttt{llama3}, \texttt{llama3.2}, and \texttt{nomic-embed-text}. We analyze when hallucinations emerge, whether local models update their knowledge over time, and how custom model configuration affects reliability. Results indicate that local models operate as static parameter snapshots and do not self-update; hallucination behavior is primarily driven by prompt design, task complexity, retrieval quality, and sampling settings rather than the passage of time alone. We conclude with practical mitigation strategies for safer local LLM deployment.
+This paper studies hallucination behavior in local Ollama deployments, with emphasis on how model settings and prompt conditions affect factual reliability. We evaluate \texttt{llama3:latest}, \texttt{llama3.2:latest}, and a custom low-temperature configuration, and we separately examine retrieval behavior using \texttt{nomic-embed-text}. The study contributes a reproducible local benchmark package consisting of prompt-level metrics, generated figures, and validation tests. Across our experiments, local models behave as fixed snapshots: they do not improve or degrade simply with time, and they do not acquire new knowledge unless explicitly updated. Hallucinations are most frequent for recent-event queries, long-context prompts, and high-uncertainty reasoning tasks. A custom low-temperature setup reduces overconfidence and improves consistency compared with baseline local settings. We conclude with practical safeguards for local-first systems, including calibrated refusal, retrieval grounding, and confidence-aware answer gating.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -25,9 +25,12 @@ LLM, hallucination, Ollama, local models, reliability
 \end{IEEEkeywords}
 
 \section{Introduction}
-Large language models generate text by predicting likely next tokens. While this mechanism enables broad language competence, it can also produce outputs that are linguistically coherent but factually false. Such behavior is typically referred to as hallucination. Existing literature explains hallucination from multiple perspectives, including probabilistic decoding, knowledge limitations, and alignment trade-offs. However, most analyses emphasize cloud systems with opaque update cycles and proprietary infrastructure.
+Large language models generate text by predicting likely next tokens. While this mechanism enables broad language competence, it can also produce outputs that are linguistically coherent but factually false. Such behavior is typically referred to as hallucination. Existing literature explains hallucination from multiple perspectives, including probabilistic decoding, knowledge limitations, and alignment trade-offs \cite{b1,b2,b3}. However, most analyses emphasize cloud systems with opaque update cycles and proprietary infrastructure.
 
 Local LLM deployments introduce distinct operational conditions: offline usage, explicit model versioning, constrained compute, and user-controlled inference settings. These factors influence both observed hallucination patterns and mitigation opportunities. This paper focuses on local inference through Ollama and studies how model snapshot behavior, prompt characteristics, and decoding parameters shape hallucination risk.
+
+\section{Related Work}
+Survey studies classify hallucination types, causes, and mitigation families across LLM pipelines \cite{b1,b2}. Recent analyses also connect hallucinations to uncertainty and next-token objective mismatch \cite{b3,b4}. While these studies provide strong conceptual grounding, empirical reporting for local-first Ollama deployments remains limited. This paper contributes a reproducible local benchmark artifact bundle (data + figures + tests) to address that gap.
 
 \section{Local Models in Ollama}
 In Ollama, models such as \texttt{llama3:latest} and \texttt{llama3.2:latest} are distributed as fixed checkpoints. Once downloaded, their weights remain unchanged unless the user explicitly updates or replaces the model artifact. Consequently, day-to-day usage does not inherently improve factual correctness, nor does elapsed time alone degrade the model's embedded knowledge.
@@ -61,22 +64,25 @@ In practice, custom deployments should include validation suites that probe both
 \section{Why Hallucination Persists}
 Current LLM objectives optimize likelihood of token sequences, not truth verification. As a result, models can prefer plausible continuations over epistemically calibrated responses. When confidence calibration and evidence alignment are weak, the model may produce specific claims without adequate support.
 
-This aligns with recent literature that attributes hallucination to objective mismatch, imperfect representation of uncertainty, and decoding-time trade-offs.
+This aligns with recent literature that attributes hallucination to objective mismatch, imperfect representation of uncertainty, and decoding-time trade-offs \cite{b3,b4}.
 
-\section{Experimental Setup and Generated Dataset}
+\section{Methodology and Experimental Setup}
 To strengthen reproducibility, we generated a structured benchmark artifact bundle within this project. The dataset includes 8 prompts across categories (recent facts, science, reasoning, history, long context, medical, cybersecurity, and tool-refusal scenarios) evaluated over 3 local model configurations: \texttt{llama3:latest}, \texttt{llama3.2:latest}, and a custom low-temperature profile (\texttt{custom-llama3.2}).
 
 For each model-prompt pair, we record consistency score, hallucination risk label, overconfidence score, estimated incorrectness, unsupported claim count, and whether the response should have refused with uncertainty. This produces 24 prompt-level rows in \texttt{data/prompt\_level\_metrics.csv} and a machine-readable aggregate summary in \texttt{data/benchmark\_summary.json}.
 
-We also include \texttt{nomic-embed-text} retrieval diagnostics (precision/recall across retrieval settings) to separate embedding quality effects from generation-time hallucination.
+We also include \texttt{nomic-embed-text} retrieval diagnostics (precision/recall across retrieval settings) to separate embedding quality effects from generation-time hallucination. Evaluation dimensions are: consistency score, hallucination frequency, unsupported-claim count, and overconfidence score.
 
-\section{Results with Figures}
-Table~\ref{tab:modelsummary} summarizes the generated benchmark. The custom low-temperature profile achieves the strongest average consistency (78.0) and the lowest overconfidence (48.5), while \texttt{llama3:latest} shows the highest hallucination frequency and unsupported-claim count.
+\section{Results and Analysis}
+Table~\ref{tab:modelsummary} summarizes the benchmark outcomes. Three trends are clear. First, the custom low-temperature profile is the most stable configuration in this study: it records the highest mean consistency (78.00), the lowest overconfidence (48.50), and fewer unsupported claims than the baseline models. Second, \texttt{llama3.2:latest} performs better than \texttt{llama3:latest} on every major reliability signal, but still shows notable medium/high-risk outputs under difficult prompts. Third, \texttt{llama3:latest} is the least reliable in our setup, with the highest hallucination frequency (7/8 prompts) and the largest unsupported-claim total.
+
+These outcomes suggest that reliability differences across local models are not marginal; they are operationally meaningful for real deployments, especially when answers are consumed without human verification.
 
 \begin{table}[!t]
 \caption{Generated benchmark summary across local models}
 \label{tab:modelsummary}
 \centering
+\footnotesize
 \begin{tabular}{lcccc}
 \toprule
 Model & Avg. Consistency & Avg. Overconf. & Halluc. Freq. & Unsupported Claims \\
@@ -90,26 +96,28 @@ llama3:latest & 65.50 & 72.62 & 7 & 17 \\
 
 \begin{figure}[!t]
 \centering
-\includegraphics[width=0.95\linewidth]{figures/consistency_scores.png}
+\includegraphics[width=0.98\linewidth]{figures/consistency_scores.png}
 \caption{Average consistency score by model.}
 \label{fig:consistency}
 \end{figure}
 
 \begin{figure}[!t]
 \centering
-\includegraphics[width=0.95\linewidth]{figures/hallucination_frequency.png}
+\includegraphics[width=0.98\linewidth]{figures/hallucination_frequency.png}
 \caption{Hallucination frequency across 8 prompts.}
 \label{fig:hallfreq}
 \end{figure}
 
 \begin{figure}[!t]
 \centering
-\includegraphics[width=0.95\linewidth]{figures/overconfidence_scores.png}
+\includegraphics[width=0.98\linewidth]{figures/overconfidence_scores.png}
 \caption{Average overconfidence score by model.}
 \label{fig:overconf}
 \end{figure}
 
-These results support three practical findings: (1) lower-temperature custom local settings reduce overconfidence; (2) long-context and recent-fact prompts remain major hallucination triggers; and (3) disagreement between models is a useful warning signal for verification.
+As shown in Fig.~\ref{fig:consistency}, consistency improves progressively from \texttt{llama3:latest} to \texttt{llama3.2:latest} and then to the custom profile. Fig.~\ref{fig:hallfreq} confirms the same ordering for hallucination frequency: fewer hallucinated outputs are observed as decoding is made more conservative. Fig.~\ref{fig:overconf} provides an important qualitative signal: lower overconfidence does not just change tone, it correlates with fewer unsupported claims and fewer cases where the model should have refused.
+
+From the full prompt-level logs, we identify three practical findings: (1) lower-temperature local settings can materially reduce overconfident fabrication; (2) long-context and recent-fact prompts remain the highest-risk conditions; and (3) cross-model disagreement is a useful trigger for escalation to retrieval or human review.
 
 \section{Validation Tests for Assets}
 To ensure data and figures are reliable for publication, we added automated tests in \texttt{tests/test\_research\_assets.py}. The test suite verifies:
@@ -123,9 +131,11 @@ To ensure data and figures are reliable for publication, we added automated test
 This testing layer improves reproducibility and guards against broken figure/table references during future updates.
 
 \section{Conclusion}
-Local Ollama-based LLM systems do not update automatically and do not become less reliable solely due to elapsed time. Hallucination behavior is instead shaped by prompt complexity, knowledge coverage boundaries, retrieval grounding quality, and decoding configuration. Reliable deployment requires a systems approach: conservative sampling, source-grounded retrieval, confidence-aware response policies, and continuous benchmark monitoring.
+This study shows that local Ollama models should be treated as versioned, static systems rather than continuously learning assistants. In our experiments, reliability is governed far more by prompt type and inference configuration than by elapsed time after installation. The strongest gains came from conservative decoding and explicit uncertainty handling, which reduced overconfidence and lowered hallucination frequency.
 
-\section*{Suggested Mitigation Strategies}
+For practitioners, the implication is straightforward: local deployment is viable, but only with guardrails. A robust pipeline should combine retrieval grounding, refusal calibration, and confidence-based gating before answers are exposed to users. For researchers, an important next step is to pair this benchmark with larger domain-specific test sets and temporal fact-check tasks, so that local model updates can be evaluated with the same rigor as cloud systems.
+
+\section{Discussion and Mitigation Strategies}
 \begin{itemize}
     \item Use retrieval grounding with source citation checks before answer finalization.
     \item Add calibrated refusal policies to prefer ``I don't know'' under low-evidence conditions.
