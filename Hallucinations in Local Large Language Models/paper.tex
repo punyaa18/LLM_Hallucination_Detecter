@@ -1,0 +1,83 @@
+\documentclass[conference]{IEEEtran}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{cite}
+\usepackage{url}
+
+\title{Hallucinations in Local Large Language Models\\
+\large A Study of Ollama-Based Systems}
+
+\author{\IEEEauthorblockN{Punyaa Dixit}
+\IEEEauthorblockA{Department of Computer Science\\
+Email: punyaa184@gmail.com}}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Large language models (LLMs) can generate fluent responses that appear correct while containing factual errors, a behavior commonly termed hallucination. Prior work has focused heavily on cloud-hosted systems, while local deployments remain comparatively under-studied. This paper examines hallucination behavior in local Ollama-based workflows using \texttt{llama3}, \texttt{llama3.2}, and \texttt{nomic-embed-text}. We analyze when hallucinations emerge, whether local models update their knowledge over time, and how custom model configuration affects reliability. Results indicate that local models operate as static parameter snapshots and do not self-update; hallucination behavior is primarily driven by prompt design, task complexity, retrieval quality, and sampling settings rather than the passage of time alone. We conclude with practical mitigation strategies for safer local LLM deployment.
+\end{abstract}
+
+\begin{IEEEkeywords}
+LLM, hallucination, Ollama, local models, reliability
+\end{IEEEkeywords}
+
+\section{Introduction}
+Large language models generate text by predicting likely next tokens. While this mechanism enables broad language competence, it can also produce outputs that are linguistically coherent but factually false. Such behavior is typically referred to as hallucination. Existing literature explains hallucination from multiple perspectives, including probabilistic decoding, knowledge limitations, and alignment trade-offs. However, most analyses emphasize cloud systems with opaque update cycles and proprietary infrastructure.
+
+Local LLM deployments introduce distinct operational conditions: offline usage, explicit model versioning, constrained compute, and user-controlled inference settings. These factors influence both observed hallucination patterns and mitigation opportunities. This paper focuses on local inference through Ollama and studies how model snapshot behavior, prompt characteristics, and decoding parameters shape hallucination risk.
+
+\section{Local Models in Ollama}
+In Ollama, models such as \texttt{llama3:latest} and \texttt{llama3.2:latest} are distributed as fixed checkpoints. Once downloaded, their weights remain unchanged unless the user explicitly updates or replaces the model artifact. Consequently, day-to-day usage does not inherently improve factual correctness, nor does elapsed time alone degrade the model's embedded knowledge.
+
+This static-snapshot property is useful for reproducibility because repeated experiments can be run under stable model states. At the same time, it means factual freshness depends on model release cadence and any external grounding components attached at inference time.
+
+\section{Do Local Models Update Knowledge?}
+Local models do not autonomously incorporate new world knowledge. They neither learn from user chats nor fetch novel facts unless connected to retrieval or tool layers. Knowledge updates occur only through deliberate intervention, e.g., \texttt{ollama pull} for a newer checkpoint, model replacement, or fine-tuning/retraining pipelines.
+
+Therefore, local deployment should be viewed as version-controlled inference rather than continually evolving intelligence. This distinction is critical when evaluating answers involving recent events.
+
+\section{When Do Local Models Hallucinate?}
+Observed hallucination risk tends to increase under the following conditions:
+\begin{enumerate}
+    \item Questions about very recent or niche facts absent from pretraining knowledge.
+    \item Multi-step reasoning tasks with high dependency chains.
+    \item Higher temperature and permissive decoding settings.
+    \item Long-context prompts with diluted or conflicting evidence.
+\end{enumerate}
+
+Importantly, hallucination does not rise merely because time passes after model download. Instead, risk is driven by uncertainty in token prediction and insufficient grounding support for the requested claim.
+
+\section{Building Custom Local Models}
+Custom model workflows can improve domain specialization, but they also introduce reliability risks. Increasing temperature generally raises output diversity and, when unmanaged, may increase hallucination frequency. Fine-tuning on narrow or low-quality datasets can reduce broad factual competence, potentially causing catastrophic forgetting.
+
+In practice, custom deployments should include validation suites that probe both domain gains and general factual retention across benchmark prompts.
+
+\section{Embedding Models and Retrieval Effects}
+\texttt{nomic-embed-text} is an embedding model rather than a generative model. It does not directly hallucinate narrative content because it outputs vectors, not free-form answers. However, in retrieval-augmented generation (RAG), poor retrieval quality (irrelevant or stale documents) can indirectly induce incorrect generated responses. Thus, embedding and retriever quality remain central to end-to-end factual reliability.
+
+\section{Why Hallucination Persists}
+Current LLM objectives optimize likelihood of token sequences, not truth verification. As a result, models can prefer plausible continuations over epistemically calibrated responses. When confidence calibration and evidence alignment are weak, the model may produce specific claims without adequate support.
+
+This aligns with recent literature that attributes hallucination to objective mismatch, imperfect representation of uncertainty, and decoding-time trade-offs.
+
+\section{Conclusion}
+Local Ollama-based LLM systems do not update automatically and do not become less reliable solely due to elapsed time. Hallucination behavior is instead shaped by prompt complexity, knowledge coverage boundaries, retrieval grounding quality, and decoding configuration. Reliable deployment requires a systems approach: conservative sampling, source-grounded retrieval, confidence-aware response policies, and continuous benchmark monitoring.
+
+\section*{Suggested Mitigation Strategies}
+\begin{itemize}
+    \item Use retrieval grounding with source citation checks before answer finalization.
+    \item Add calibrated refusal policies to prefer ``I don't know'' under low-evidence conditions.
+    \item Introduce confidence scoring layers and threshold-based gating for high-risk outputs.
+    \item Benchmark across diverse factual prompts and monitor drift after model changes.
+    \item Evaluate custom fine-tunes for catastrophic forgetting before production rollout.
+\end{itemize}
+
+\begin{thebibliography}{00}
+\bibitem{b1} L. Huang \textit{et al.}, ``A Survey on Hallucination in Large Language Models: Principles, Taxonomy, Challenges, and Open Questions.''
+\bibitem{b2} M. Cleti and P. Jano, ``Hallucinations in LLMs: Types, Causes, and Approaches for Enhanced Reliability.''
+\bibitem{b3} A. T. Kalai \textit{et al.}, ``Why Language Models Hallucinate,'' 2025.
+\bibitem{b4} ``Detecting Hallucinations in Large Language Models Using Semantic Entropy.''
+\end{thebibliography}
+
+\end{document}
