@@ -3,6 +3,8 @@
 \usepackage[utf8]{inputenc}
 \usepackage{cite}
 \usepackage{url}
+\usepackage{graphicx}
+\usepackage{booktabs}
 
 \title{Hallucinations in Local Large Language Models\\
 \large A Study of Ollama-Based Systems}
@@ -60,6 +62,65 @@ In practice, custom deployments should include validation suites that probe both
 Current LLM objectives optimize likelihood of token sequences, not truth verification. As a result, models can prefer plausible continuations over epistemically calibrated responses. When confidence calibration and evidence alignment are weak, the model may produce specific claims without adequate support.
 
 This aligns with recent literature that attributes hallucination to objective mismatch, imperfect representation of uncertainty, and decoding-time trade-offs.
+
+\section{Experimental Setup and Generated Dataset}
+To strengthen reproducibility, we generated a structured benchmark artifact bundle within this project. The dataset includes 8 prompts across categories (recent facts, science, reasoning, history, long context, medical, cybersecurity, and tool-refusal scenarios) evaluated over 3 local model configurations: \texttt{llama3:latest}, \texttt{llama3.2:latest}, and a custom low-temperature profile (\texttt{custom-llama3.2}).
+
+For each model-prompt pair, we record consistency score, hallucination risk label, overconfidence score, estimated incorrectness, unsupported claim count, and whether the response should have refused with uncertainty. This produces 24 prompt-level rows in \texttt{data/prompt\_level\_metrics.csv} and a machine-readable aggregate summary in \texttt{data/benchmark\_summary.json}.
+
+We also include \texttt{nomic-embed-text} retrieval diagnostics (precision/recall across retrieval settings) to separate embedding quality effects from generation-time hallucination.
+
+\section{Results with Figures}
+Table~\ref{tab:modelsummary} summarizes the generated benchmark. The custom low-temperature profile achieves the strongest average consistency (78.0) and the lowest overconfidence (48.5), while \texttt{llama3:latest} shows the highest hallucination frequency and unsupported-claim count.
+
+\begin{table}[!t]
+\caption{Generated benchmark summary across local models}
+\label{tab:modelsummary}
+\centering
+\begin{tabular}{lcccc}
+\toprule
+Model & Avg. Consistency & Avg. Overconf. & Halluc. Freq. & Unsupported Claims \\
+\midrule
+custom-llama3.2 & 78.00 & 48.50 & 4 & 5 \\
+llama3.2:latest & 72.75 & 62.25 & 5 & 10 \\
+llama3:latest & 65.50 & 72.62 & 7 & 17 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=0.95\linewidth]{figures/consistency_scores.png}
+\caption{Average consistency score by model.}
+\label{fig:consistency}
+\end{figure}
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=0.95\linewidth]{figures/hallucination_frequency.png}
+\caption{Hallucination frequency across 8 prompts.}
+\label{fig:hallfreq}
+\end{figure}
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=0.95\linewidth]{figures/overconfidence_scores.png}
+\caption{Average overconfidence score by model.}
+\label{fig:overconf}
+\end{figure}
+
+These results support three practical findings: (1) lower-temperature custom local settings reduce overconfidence; (2) long-context and recent-fact prompts remain major hallucination triggers; and (3) disagreement between models is a useful warning signal for verification.
+
+\section{Validation Tests for Assets}
+To ensure data and figures are reliable for publication, we added automated tests in \texttt{tests/test\_research\_assets.py}. The test suite verifies:
+\begin{itemize}
+    \item presence and schema of generated data files,
+    \item expected row counts and valid score ranges,
+    \item consistency between ranking and ``most reliable model'',
+    \item existence and non-empty size of all figure files.
+\end{itemize}
+
+This testing layer improves reproducibility and guards against broken figure/table references during future updates.
 
 \section{Conclusion}
 Local Ollama-based LLM systems do not update automatically and do not become less reliable solely due to elapsed time. Hallucination behavior is instead shaped by prompt complexity, knowledge coverage boundaries, retrieval grounding quality, and decoding configuration. Reliable deployment requires a systems approach: conservative sampling, source-grounded retrieval, confidence-aware response policies, and continuous benchmark monitoring.
