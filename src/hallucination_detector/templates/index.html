@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Local LLM Hallucination Watch</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+  <main class="container">
+    <h1>Local LLM Hallucination Watch</h1>
+    <p class="subtitle">Detect when your local model is close to hallucinating.</p>
+
+    <section class="panel">
+      <label for="inputText">Model response text</label>
+      <textarea id="inputText" rows="8" placeholder="Paste local LLM output here..."></textarea>
+      <button id="analyzeBtn">Analyze</button>
+    </section>
+
+    <section class="panel hidden" id="resultsPanel">
+      <div class="top-row">
+        <div>
+          <h2>Hallucination Score</h2>
+          <p id="scoreText">0.00</p>
+        </div>
+        <div>
+          <h2>Risk Level</h2>
+          <span id="riskBadge" class="badge">low</span>
+        </div>
+      </div>
+
+      <div id="warningBox" class="warning safe">Stable: no strong hallucination signal detected yet.</div>
+
+      <div class="summary-grid">
+        <div class="stat"><span>Total claims</span><strong id="totalClaims">0</strong></div>
+        <div class="stat"><span>Supported</span><strong id="supportedClaims">0</strong></div>
+        <div class="stat"><span>Contradicted</span><strong id="contradictedClaims">0</strong></div>
+        <div class="stat"><span>Unverifiable</span><strong id="unverifiableClaims">0</strong></div>
+      </div>
+
+      <h3>Claim Status</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Claim</th>
+            <th>Status</th>
+            <th>Confidence</th>
+            <th>Explanation</th>
+          </tr>
+        </thead>
+        <tbody id="claimsBody"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script>
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const inputText = document.getElementById('inputText');
+
+    const resultsPanel = document.getElementById('resultsPanel');
+    const scoreText = document.getElementById('scoreText');
+    const riskBadge = document.getElementById('riskBadge');
+    const warningBox = document.getElementById('warningBox');
+
+    const totalClaims = document.getElementById('totalClaims');
+    const supportedClaims = document.getElementById('supportedClaims');
+    const contradictedClaims = document.getElementById('contradictedClaims');
+    const unverifiableClaims = document.getElementById('unverifiableClaims');
+    const claimsBody = document.getElementById('claimsBody');
+
+    function setWarning(level, message) {
+      warningBox.className = `warning ${level}`;
+      warningBox.textContent = message;
+    }
+
+    function fillClaims(rows) {
+      claimsBody.innerHTML = '';
+      for (const row of rows) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${row.claim}</td>
+          <td><span class="status ${row.status}">${row.status}</span></td>
+          <td>${Number(row.confidence).toFixed(3)}</td>
+          <td>${row.explanation || ''}</td>
+        `;
+        claimsBody.appendChild(tr);
+      }
+    }
+
+    analyzeBtn.addEventListener('click', async () => {
+      const text = inputText.value.trim();
+      if (!text) {
+        alert('Please enter text to analyze.');
+        return;
+      }
+
+      analyzeBtn.disabled = true;
+      analyzeBtn.textContent = 'Analyzing...';
+
+      try {
+        const response = await fetch('/api/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text })
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Analysis failed.');
+        }
+
+        resultsPanel.classList.remove('hidden');
+
+        scoreText.textContent = Number(data.hallucination_score).toFixed(3);
+        riskBadge.textContent = data.risk_level;
+        riskBadge.className = `badge ${data.risk_level}`;
+        setWarning(data.warning_level, data.warning_message);
+
+        totalClaims.textContent = String(data.total_claims ?? 0);
+        supportedClaims.textContent = String(data.summary?.supported ?? 0);
+        contradictedClaims.textContent = String(data.summary?.contradicted ?? 0);
+        unverifiableClaims.textContent = String(data.summary?.unverifiable ?? 0);
+
+        fillClaims(data.claims || []);
+      } catch (error) {
+        alert(error.message || 'Unable to analyze text.');
+      } finally {
+        analyzeBtn.disabled = false;
+        analyzeBtn.textContent = 'Analyze';
+      }
+    });
+  </script>
+</body>
+</html>
