@@ -7,8 +7,10 @@ from pathlib import Path
 from textwrap import wrap
 
 from docx import Document
+from docx.shared import Inches
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
+from reportlab.lib.utils import ImageReader
 
 
 def latex_to_plain(text: str) -> str:
@@ -38,6 +40,19 @@ def parse_paper(tex_path: Path):
     abstract = latex_to_plain(abstract_match.group(1)) if abstract_match else ""
 
     sections = []
+    figures = []
+
+    figure_blocks = re.findall(r"\\begin\{figure\}\[!t\](.*?)\\end\{figure\}", raw, re.DOTALL)
+    for block in figure_blocks:
+        path_match = re.search(r"\\includegraphics\[.*?\]\{([^}]*)\}", block)
+        cap_match = re.search(r"\\caption\{([^}]*)\}", block, re.DOTALL)
+        if path_match:
+            figures.append(
+                {
+                    "path": path_match.group(1).strip(),
+                    "caption": latex_to_plain(cap_match.group(1)) if cap_match else "Figure",
+                }
+            )
     pattern = re.compile(r"\\section\*?\{([^}]*)\}")
     matches = list(pattern.finditer(raw))
     for idx, match in enumerate(matches):
@@ -64,10 +79,10 @@ def parse_paper(tex_path: Path):
         entries = re.findall(r"\\bibitem\{[^}]*\}\s*(.+?)(?=\\bibitem|$)", bib.group(1), re.DOTALL)
         refs = [latex_to_plain(item) for item in entries]
 
-    return title, author, abstract, sections, refs
+    return title, author, abstract, sections, refs, figures
 
 
-def export_docx(out_path: Path, title: str, author: str, abstract: str, sections, refs):
+def export_docx(out_path: Path, title: str, author: str, abstract: str, sections, refs, figures, base_dir: Path):
     doc = Document()
     doc.add_heading(title, level=0)
     doc.add_paragraph(author)
@@ -80,6 +95,14 @@ def export_docx(out_path: Path, title: str, author: str, abstract: str, sections
         if sec_body:
             doc.add_paragraph(sec_body)
 
+    if figures:
+        doc.add_heading("Figures", level=1)
+        for idx, fig in enumerate(figures, 1):
+            fig_path = (base_dir / fig["path"]).resolve()
+            if fig_path.exists():
+                doc.add_picture(str(fig_path), width=Inches(6.1))
+                doc.add_paragraph(f"Fig. {idx}. {fig['caption']}")
+
     if refs:
         doc.add_heading("References", level=1)
         for idx, ref in enumerate(refs, 1):
@@ -88,7 +111,7 @@ def export_docx(out_path: Path, title: str, author: str, abstract: str, sections
     doc.save(str(out_path))
 
 
-def export_pdf(out_path: Path, title: str, author: str, abstract: str, sections, refs):
+def export_pdf(out_path: Path, title: str, author: str, abstract: str, sections, refs, figures, base_dir: Path):
     c = canvas.Canvas(str(out_path), pagesize=A4)
     width, height = A4
     margin = 50
@@ -122,6 +145,31 @@ def export_pdf(out_path: Path, title: str, author: str, abstract: str, sections,
             y -= 2
         y -= 4
 
+    if figures:
+        write_line("Figures", font="Times-Bold", size=12)
+        for idx, fig in enumerate(figures, 1):
+            fig_path = (base_dir / fig["path"]).resolve()
+            if not fig_path.exists():
+                continue
+
+            image = ImageReader(str(fig_path))
+            img_w, img_h = image.getSize()
+            max_w = width - 2 * margin
+            max_h = 220
+            scale = min(max_w / img_w, max_h / img_h)
+            draw_w = img_w * scale
+            draw_h = img_h * scale
+
+            if y - draw_h - 30 < margin:
+                c.showPage()
+                y = height - margin
+
+            c.drawImage(str(fig_path), margin, y - draw_h, width=draw_w, height=draw_h, preserveAspectRatio=True, mask='auto')
+            y -= draw_h + 14
+            for ln in wrap(f"Fig. {idx}. {fig['caption']}", 105):
+                write_line(ln, size=10, gap=13)
+            y -= 5
+
     if refs:
         write_line("References", font="Times-Bold", size=12)
         for idx, ref in enumerate(refs, 1):
@@ -137,9 +185,9 @@ def main():
     docx_path = base / "paper.docx"
     pdf_path = base / "paper.pdf"
 
-    title, author, abstract, sections, refs = parse_paper(tex_path)
-    export_docx(docx_path, title, author, abstract, sections, refs)
-    export_pdf(pdf_path, title, author, abstract, sections, refs)
+    title, author, abstract, sections, refs, figures = parse_paper(tex_path)
+    export_docx(docx_path, title, author, abstract, sections, refs, figures, base)
+    export_pdf(pdf_path, title, author, abstract, sections, refs, figures, base)
 
     print(f"Created {docx_path}")
     print(f"Created {pdf_path}")
