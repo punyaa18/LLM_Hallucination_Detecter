@@ -1,63 +1,121 @@
-"""Generate feature architecture diagram for the research paper."""
+2"""Generate a minimal methodology feature module diagram for the paper."""
 
 from pathlib import Path
+
 import matplotlib.pyplot as plt
-from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
+from matplotlib.patches import Rectangle, FancyArrowPatch
 
 
-def box(ax, xy, w, h, text, color="#e8eef8"):
-    patch = FancyBboxPatch(
-        xy,
-        w,
-        h,
-        boxstyle="round,pad=0.02",
-        linewidth=1.4,
-        edgecolor="#2b4c7e",
-        facecolor=color,
+TITLE_COLOR = "#18324d"
+TEXT_COLOR = "#24384d"
+LINE_COLOR = "#254f7d"
+BOX_FILL = "#f7f9fc"
+def add_box(ax, x, y, w, h, title, detail):
+    ax.add_patch(
+        Rectangle(
+            (x, y),
+            w,
+            h,
+            linewidth=1.6,
+            edgecolor=LINE_COLOR,
+            facecolor=BOX_FILL,
+        )
     )
-    ax.add_patch(patch)
-    ax.text(xy[0] + w / 2, xy[1] + h / 2, text, ha="center", va="center", fontsize=9)
+    ax.text(
+        x + w / 2,
+        y + h * 0.64,
+        title,
+        ha="center",
+        va="center",
+        fontsize=10.5,
+        fontweight="bold",
+        color=TITLE_COLOR,
+    )
+    ax.text(
+        x + w / 2,
+        y + h * 0.33,
+        detail,
+        ha="center",
+        va="center",
+        fontsize=8.5,
+        color=TEXT_COLOR,
+    )
 
 
-def arrow(ax, p1, p2):
-    ax.add_patch(FancyArrowPatch(p1, p2, arrowstyle="->", mutation_scale=12, linewidth=1.2, color="#1f2d3d"))
-
-
+def add_arrow(ax, start, end):
+    ax.add_patch(
+        FancyArrowPatch(
+            start,
+            end,
+            arrowstyle="->",
+            mutation_scale=13,
+            linewidth=1.4,
+            color=LINE_COLOR,
+        )
+    )
 def main():
     base = Path(__file__).resolve().parent
     figures = base / "figures"
     figures.mkdir(parents=True, exist_ok=True)
 
-    fig, ax = plt.subplots(figsize=(10, 4.8))
+    fig, ax = plt.subplots(figsize=(16, 5.8))
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
     ax.axis("off")
+    ax.set_facecolor("white")
 
-    box(ax, (0.03, 0.62), 0.16, 0.2, "Prompt Set\n(8 categories)", "#dceaf9")
-    box(ax, (0.24, 0.62), 0.2, 0.2, "Ollama Models\nllama3 / llama3.2 / custom", "#e8f5e9")
-    box(ax, (0.49, 0.62), 0.2, 0.2, "Tri-LLM Evaluator\nconsistency + divergence", "#fff8e1")
-    box(ax, (0.74, 0.62), 0.22, 0.2, "Scoring Engine\nrisk + overconfidence", "#fdecea")
+    ax.text(
+        0.5,
+        0.95,
+        "Methodology Feature Module Diagram",
+        ha="center",
+        va="center",
+        fontsize=17,
+        fontweight="bold",
+        color=TITLE_COLOR,
+    )
+    ax.text(
+        0.5,
+        0.915,
+        "Minimal pipeline for hallucination detection in LLM outputs",
+        ha="center",
+        va="center",
+        fontsize=9.8,
+        color="#4a647f",
+    )
 
-    box(ax, (0.16, 0.2), 0.24, 0.2, "nomic-embed-text\nretrieval diagnostics", "#ede7f6")
-    box(ax, (0.45, 0.2), 0.23, 0.2, "Research Assets\nCSV + JSON + tests", "#e0f7fa")
-    box(ax, (0.73, 0.2), 0.23, 0.2, "Paper Outputs\nIEEE TEX + PDF + DOCX", "#fce4ec")
+    box_y = 0.34
+    box_h = 0.22
+    box_w = 0.12
+    gap = 0.016
+    start_x = 0.04
 
-    arrow(ax, (0.19, 0.72), (0.24, 0.72))
-    arrow(ax, (0.44, 0.72), (0.49, 0.72))
-    arrow(ax, (0.69, 0.72), (0.74, 0.72))
+    boxes = [
+        ("Input\nLayer", "Query / text"),
+        ("Claim\nExtraction", "Atomic claims"),
+        ("Evidence\nRetrieval", "Trusted sources"),
+        ("Verification", "NLI / similarity"),
+        ("Hallucination\nDetection", "Supported / contradicted / unverif."),
+        ("Risk\nScoring", "Confidence score"),
+        ("Annotated\nResponse", "Flags + reliability"),
+    ]
 
-    arrow(ax, (0.34, 0.62), (0.28, 0.40))
-    arrow(ax, (0.59, 0.62), (0.56, 0.40))
-    arrow(ax, (0.85, 0.62), (0.84, 0.40))
+    positions = []
+    for index, (title, detail) in enumerate(boxes):
+        x = start_x + index * (box_w + gap)
+        positions.append(x)
+        add_box(ax, x, box_y, box_w, box_h, title, detail)
 
-    arrow(ax, (0.40, 0.30), (0.45, 0.30))
-    arrow(ax, (0.68, 0.30), (0.73, 0.30))
+    mid_y = box_y + box_h / 2
+    for x in positions[:-1]:
+        add_arrow(ax, (x + box_w, mid_y), (x + box_w + gap, mid_y))
 
-    ax.text(0.5, 0.94, "Feature Architecture for Local Hallucination Benchmark", ha="center", va="center", fontsize=12, fontweight="bold")
+    add_arrow(ax, (0.13, 0.68), (0.13, box_y + box_h))
+    add_arrow(ax, (0.88, box_y), (0.88, 0.29))
 
     out = figures / "feature_architecture.png"
     plt.tight_layout()
-    plt.savefig(out, dpi=220)
+    plt.savefig(out, dpi=260, bbox_inches="tight")
     plt.close(fig)
     print(f"Created {out}")
 
