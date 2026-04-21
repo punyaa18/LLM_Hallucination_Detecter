@@ -58,6 +58,7 @@ def test_summary_and_ranking_consistency():
 
 def test_figure_files_exist_and_nonempty():
     figures = [
+        "feature_architecture.png",
         "consistency_scores.png",
         "hallucination_frequency.png",
         "overconfidence_scores.png",
