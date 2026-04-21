@@ -69,12 +69,12 @@ This aligns with recent literature that attributes hallucination to objective mi
 \section{Methodology and Experimental Setup}
 To strengthen reproducibility, we generated a structured benchmark artifact bundle within this project. The dataset includes 8 prompts across categories (recent facts, science, reasoning, history, long context, medical, cybersecurity, and tool-refusal scenarios) evaluated over 3 local model configurations: \texttt{llama3:latest}, \texttt{llama3.2:latest}, and a custom low-temperature profile (\texttt{custom-llama3.2}).
 
-Fig.~\ref{fig:featurearch} shows the end-to-end feature pipeline used in this work, from prompt generation and local model execution to scoring, validation assets, and paper outputs.
+Fig.~\ref{fig:featurearch} shows the methodology module flow for hallucination detection in LLM outputs.
 
 \begin{figure}[!t]
 \centering
 \includegraphics[width=0.98\linewidth]{figures/feature_architecture.png}
-\caption{Feature architecture of the local hallucination evaluation framework.}
+\caption{Methodology feature module diagram for hallucination detection in LLM outputs.}
 \label{fig:featurearch}
 \end{figure}
 
