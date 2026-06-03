@@ -81,5 +81,9 @@ def test_report_to_visual_payload_shape():
 
     assert payload["risk_level"] == "low"
     assert "warning_level" in payload
+    assert "summary_counts" in payload
+    assert "problematic_claims" in payload
     assert isinstance(payload["claims"], list)
     assert payload["claims"][0]["status"] == "supported"
+    assert "supporting_evidence" in payload["claims"][0]
+    assert "contradicting_evidence" in payload["claims"][0]

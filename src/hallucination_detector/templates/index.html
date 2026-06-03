@@ -3,91 +3,435 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Local LLM Hallucination Watch</title>
+  <title>Hallucination Detection Dashboard</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
 </head>
 <body>
-  <main class="container">
-    <h1>Local LLM Hallucination Watch</h1>
-    <p class="subtitle">Detect when your local model is close to hallucinating.</p>
+  <main class="shell">
+    <div class="ambient ambient-a"></div>
+    <div class="ambient ambient-b"></div>
 
-    <section class="panel">
-      <label for="inputText">Model response text</label>
-      <textarea id="inputText" rows="8" placeholder="Paste local LLM output here..."></textarea>
-      <button id="analyzeBtn">Analyze</button>
+    <header class="hero">
+      <div class="hero-copy">
+        <div class="eyebrow">
+          <span class="eyebrow-dot"></span>
+          Research-grade hallucination verification
+        </div>
+        <h1>AI Hallucination Detection Dashboard</h1>
+        <p class="lead">
+          Claim extraction, evidence retrieval, NLI verification, and hallucination scoring in one
+          dark analytics workspace built for local Ollama-backed workflows.
+        </p>
+        <div class="hero-chips">
+          <span class="chip">Ollama</span>
+          <span class="chip">Llama 3</span>
+          <span class="chip">Mistral</span>
+          <span class="chip">Claim graph</span>
+        </div>
+      </div>
+
+      <aside class="showcase-card">
+        <div class="showcase-top">
+          <div class="shield-wrap" aria-hidden="true">
+            <svg viewBox="0 0 64 64" role="img" aria-label="AI shield icon">
+              <defs>
+                <linearGradient id="shieldGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#8b5cf6" />
+                  <stop offset="100%" stop-color="#22d3ee" />
+                </linearGradient>
+              </defs>
+              <path d="M32 4 10 12v17c0 13.6 8.7 25.8 22 31 13.3-5.2 22-17.4 22-31V12L32 4Z" fill="url(#shieldGlow)" opacity="0.95" />
+              <path d="M23 33.5l6 6 12-14" fill="none" stroke="#05111f" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </div>
+          <div>
+            <p class="card-kicker">Example result preview</p>
+            <h2>Hallucination Detected</h2>
+          </div>
+        </div>
+
+        <dl class="preview-grid">
+          <div>
+            <dt>Claim</dt>
+            <dd>Paris is the capital of Germany</dd>
+          </div>
+          <div>
+            <dt>Evidence</dt>
+            <dd>Germany's capital is Berlin</dd>
+          </div>
+          <div>
+            <dt>Status</dt>
+            <dd><span class="badge bad">Hallucination detected</span></dd>
+          </div>
+          <div>
+            <dt>Risk score</dt>
+            <dd><strong>95%</strong></dd>
+          </div>
+        </dl>
+      </aside>
+    </header>
+
+    <section class="controls-card">
+      <div class="controls-head">
+        <div>
+          <p class="card-kicker">Input text box</p>
+          <h2>Analyze a model response</h2>
+        </div>
+        <div class="workflow-note">Claim extraction → evidence retrieval → NLI → scoring</div>
+      </div>
+
+      <label for="inputText">Response to inspect</label>
+      <textarea id="inputText" rows="7" placeholder="Paste model output here or load the demo case."></textarea>
+
+      <div class="actions">
+        <button id="analyzeBtn" class="primary-btn">Analyze hallucination risk</button>
+        <button id="demoBtn" class="secondary-btn" type="button">Load demo</button>
+        <button id="clearBtn" class="ghost-btn" type="button">Clear</button>
+      </div>
     </section>
 
-    <section class="panel hidden" id="resultsPanel">
-      <div class="top-row">
-        <div>
-          <h2>Hallucination Score</h2>
-          <p id="scoreText">0.00</p>
+    <section class="artifacts-grid">
+      <article class="card artifact-card">
+        <div class="card-header">
+          <div>
+            <p class="card-kicker">Architecture</p>
+            <h2>Detection pipeline</h2>
+          </div>
         </div>
-        <div>
-          <h2>Risk Level</h2>
+        <img
+          class="artifact-image"
+          src="{{ url_for('static', filename='research_assets/feature_architecture.png') }}"
+          alt="Hallucination detection pipeline architecture"
+        />
+      </article>
+
+      <article class="card artifact-card">
+        <div class="card-header">
+          <div>
+            <p class="card-kicker">Results</p>
+            <h2>Consistency chart</h2>
+          </div>
+        </div>
+        <img
+          class="artifact-image"
+          src="{{ url_for('static', filename='research_assets/consistency_scores.png') }}"
+          alt="Model consistency scores chart"
+        />
+      </article>
+    </section>
+
+    <section class="results-grid hidden" id="resultsPanel">
+      <article class="score-card card">
+        <div class="card-header">
+          <div>
+            <p class="card-kicker">Hallucination score card</p>
+            <h2>Risk snapshot</h2>
+          </div>
           <span id="riskBadge" class="badge">low</span>
         </div>
-      </div>
 
-      <div id="warningBox" class="warning safe">Stable: no strong hallucination signal detected yet.</div>
+        <div class="score-ring" id="scoreRing" style="--score: 0.0;">
+          <div class="score-ring-inner">
+            <span class="score-label">Risk</span>
+            <strong id="scoreText">0%</strong>
+          </div>
+        </div>
 
-      <div class="summary-grid">
-        <div class="stat"><span>Total claims</span><strong id="totalClaims">0</strong></div>
-        <div class="stat"><span>Supported</span><strong id="supportedClaims">0</strong></div>
-        <div class="stat"><span>Contradicted</span><strong id="contradictedClaims">0</strong></div>
-        <div class="stat"><span>Unverifiable</span><strong id="unverifiableClaims">0</strong></div>
-      </div>
+        <div id="warningBox" class="warning safe">Run an analysis to generate a risk assessment.</div>
 
-      <h3>Claim Status</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>Claim</th>
-            <th>Status</th>
-            <th>Confidence</th>
-            <th>Explanation</th>
-          </tr>
-        </thead>
-        <tbody id="claimsBody"></tbody>
-      </table>
+        <div class="mini-stats">
+          <div class="mini-stat">
+            <span>Total claims</span>
+            <strong id="totalClaims">0</strong>
+          </div>
+          <div class="mini-stat">
+            <span>Problematic</span>
+            <strong id="problematicClaims">0</strong>
+          </div>
+          <div class="mini-stat">
+            <span>Supported</span>
+            <strong id="supportedClaims">0</strong>
+          </div>
+          <div class="mini-stat">
+            <span>Unverifiable</span>
+            <strong id="unverifiableClaims">0</strong>
+          </div>
+        </div>
+      </article>
+
+      <article class="card claim-card">
+        <div class="card-header">
+          <div>
+            <p class="card-kicker">Claim extraction panel</p>
+            <h2>Extracted claims</h2>
+          </div>
+          <span class="subtle">Click a claim to inspect evidence</span>
+        </div>
+
+        <div id="claimsList" class="claims-list empty-state">
+          No analysis has been run yet.
+        </div>
+      </article>
+
+      <article class="card evidence-card">
+        <div class="card-header">
+          <div>
+            <p class="card-kicker">Evidence retrieval panel</p>
+            <h2>Claim verification details</h2>
+          </div>
+          <span id="selectedClaimStatus" class="badge">pending</span>
+        </div>
+
+        <div class="verification-strip">
+          <div>
+            <span>Selected claim</span>
+            <strong id="selectedClaimText">Waiting for analysis</strong>
+          </div>
+          <div>
+            <span>Confidence</span>
+            <strong id="selectedClaimConfidence">0%</strong>
+          </div>
+        </div>
+
+        <div class="verification-note" id="selectedClaimExplanation">
+          The NLI verdict and evidence cards will appear here after analysis.
+        </div>
+
+        <div class="evidence-columns">
+          <section>
+            <h3>Best evidence</h3>
+            <div class="evidence-stack" id="bestEvidence"></div>
+          </section>
+
+          <section>
+            <h3>Supporting evidence</h3>
+            <div class="evidence-stack" id="supportingEvidence"></div>
+          </section>
+
+          <section>
+            <h3>Contradicting evidence</h3>
+            <div class="evidence-stack" id="contradictingEvidence"></div>
+          </section>
+        </div>
+      </article>
     </section>
   </main>
 
   <script>
+    const demoText = 'Paris is the capital of Germany';
+
     const analyzeBtn = document.getElementById('analyzeBtn');
+    const demoBtn = document.getElementById('demoBtn');
+    const clearBtn = document.getElementById('clearBtn');
     const inputText = document.getElementById('inputText');
 
     const resultsPanel = document.getElementById('resultsPanel');
     const scoreText = document.getElementById('scoreText');
+    const scoreRing = document.getElementById('scoreRing');
     const riskBadge = document.getElementById('riskBadge');
     const warningBox = document.getElementById('warningBox');
 
     const totalClaims = document.getElementById('totalClaims');
+    const problematicClaims = document.getElementById('problematicClaims');
     const supportedClaims = document.getElementById('supportedClaims');
-    const contradictedClaims = document.getElementById('contradictedClaims');
     const unverifiableClaims = document.getElementById('unverifiableClaims');
-    const claimsBody = document.getElementById('claimsBody');
+
+    const claimsList = document.getElementById('claimsList');
+    const selectedClaimStatus = document.getElementById('selectedClaimStatus');
+    const selectedClaimText = document.getElementById('selectedClaimText');
+    const selectedClaimConfidence = document.getElementById('selectedClaimConfidence');
+    const selectedClaimExplanation = document.getElementById('selectedClaimExplanation');
+    const bestEvidence = document.getElementById('bestEvidence');
+    const supportingEvidence = document.getElementById('supportingEvidence');
+    const contradictingEvidence = document.getElementById('contradictingEvidence');
+
+    let currentClaims = [];
+    let selectedClaimIndex = 0;
+
+    function escapeHtml(text) {
+      return String(text)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    function formatPercent(value) {
+      const number = Number(value) || 0;
+      return `${Math.round(number * 100)}%`;
+    }
 
     function setWarning(level, message) {
       warningBox.className = `warning ${level}`;
       warningBox.textContent = message;
     }
 
-    function fillClaims(rows) {
-      claimsBody.innerHTML = '';
-      for (const row of rows) {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${row.claim}</td>
-          <td><span class="status ${row.status}">${row.status}</span></td>
-          <td>${Number(row.confidence).toFixed(3)}</td>
-          <td>${row.explanation || ''}</td>
-        `;
-        claimsBody.appendChild(tr);
+    function setRiskLevel(level) {
+      riskBadge.textContent = level;
+      riskBadge.className = `badge ${level}`;
+    }
+
+    function renderEvidenceItem(evidence, kind) {
+      const item = document.createElement('article');
+      item.className = `evidence-item ${kind}`;
+
+      const header = document.createElement('div');
+      header.className = 'evidence-header';
+
+      const source = document.createElement('strong');
+      source.textContent = evidence.source || 'Unknown source';
+
+      const relevance = document.createElement('span');
+      relevance.className = 'evidence-score';
+      relevance.textContent = `${Math.round((Number(evidence.relevance) || 0) * 100)}% match`;
+
+      header.appendChild(source);
+      header.appendChild(relevance);
+
+      const text = document.createElement('p');
+      text.className = 'evidence-text';
+      text.textContent = evidence.text || 'No evidence text available.';
+
+      item.appendChild(header);
+      item.appendChild(text);
+
+      if (evidence.url) {
+        const link = document.createElement('a');
+        link.href = evidence.url;
+        link.target = '_blank';
+        link.rel = 'noreferrer';
+        link.textContent = 'Open source';
+        item.appendChild(link);
+      }
+
+      return item;
+    }
+
+    function renderEvidenceStack(container, items, kind) {
+      container.innerHTML = '';
+      if (!items || items.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'empty-state compact';
+        empty.textContent = 'No evidence retrieved for this claim.';
+        container.appendChild(empty);
+        return;
+      }
+
+      for (const evidence of items) {
+        container.appendChild(renderEvidenceItem(evidence, kind));
       }
     }
 
-    analyzeBtn.addEventListener('click', async () => {
+    function renderSelectedClaim() {
+      const claim = currentClaims[selectedClaimIndex];
+      if (!claim) {
+        selectedClaimStatus.className = 'badge';
+        selectedClaimStatus.textContent = 'pending';
+        selectedClaimText.textContent = 'Waiting for analysis';
+        selectedClaimConfidence.textContent = '0%';
+        selectedClaimExplanation.textContent = 'The NLI verdict and evidence cards will appear here after analysis.';
+        bestEvidence.innerHTML = '';
+        supportingEvidence.innerHTML = '';
+        contradictingEvidence.innerHTML = '';
+        return;
+      }
+
+      selectedClaimStatus.className = `badge ${claim.status}`;
+      selectedClaimStatus.textContent = claim.status.replaceAll('_', ' ');
+      selectedClaimText.textContent = claim.claim;
+      selectedClaimConfidence.textContent = formatPercent(claim.confidence);
+      selectedClaimExplanation.textContent = claim.explanation || 'No explanation provided.';
+
+      bestEvidence.innerHTML = '';
+      if (claim.best_evidence && claim.best_evidence.text) {
+        bestEvidence.appendChild(renderEvidenceItem(claim.best_evidence, claim.best_evidence.kind || 'supporting'));
+      } else {
+        const empty = document.createElement('div');
+        empty.className = 'empty-state compact';
+        empty.textContent = 'No single best evidence was identified.';
+        bestEvidence.appendChild(empty);
+      }
+
+      renderEvidenceStack(supportingEvidence, claim.supporting_evidence, 'supporting');
+      renderEvidenceStack(contradictingEvidence, claim.contradicting_evidence, 'contradicting');
+    }
+
+    function renderClaims(rows) {
+      currentClaims = rows || [];
+      claimsList.innerHTML = '';
+
+      if (!currentClaims.length) {
+        claimsList.className = 'claims-list empty-state';
+        claimsList.textContent = 'No claims were extracted from the text.';
+        renderSelectedClaim();
+        return;
+      }
+
+      claimsList.className = 'claims-list';
+
+      currentClaims.forEach((claim, index) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = `claim-item ${index === selectedClaimIndex ? 'active' : ''}`;
+        button.addEventListener('click', () => {
+          selectedClaimIndex = index;
+          renderClaims(currentClaims);
+        });
+
+        const claimText = document.createElement('strong');
+        claimText.textContent = claim.claim;
+
+        const claimMeta = document.createElement('div');
+        claimMeta.className = 'claim-meta';
+
+        const status = document.createElement('span');
+        status.className = `badge ${claim.status}`;
+        status.textContent = claim.status.replaceAll('_', ' ');
+
+        const confidence = document.createElement('span');
+        confidence.className = 'confidence-chip';
+        confidence.textContent = formatPercent(claim.confidence);
+
+        const evidenceCount = document.createElement('span');
+        evidenceCount.className = 'confidence-chip muted';
+        evidenceCount.textContent = `${claim.supporting_count || 0} supporting / ${claim.contradicting_count || 0} contradicting`;
+
+        claimMeta.appendChild(status);
+        claimMeta.appendChild(confidence);
+        claimMeta.appendChild(evidenceCount);
+
+        const summary = document.createElement('p');
+        summary.textContent = claim.explanation || 'No explanation provided.';
+
+        button.appendChild(claimText);
+        button.appendChild(claimMeta);
+        button.appendChild(summary);
+
+        claimsList.appendChild(button);
+      });
+
+      renderSelectedClaim();
+    }
+
+    function populateResults(data) {
+      resultsPanel.classList.remove('hidden');
+
+      scoreText.textContent = formatPercent(data.hallucination_score);
+      scoreRing.style.setProperty('--score', String(Number(data.hallucination_score) || 0));
+      setRiskLevel(data.risk_level || 'low');
+      setWarning(data.warning_level || 'safe', data.warning_message || '');
+
+      totalClaims.textContent = String(data.total_claims ?? 0);
+      problematicClaims.textContent = String(data.problematic_claims ?? 0);
+      supportedClaims.textContent = String(data.summary_counts?.supported ?? 0);
+      unverifiableClaims.textContent = String(data.summary_counts?.unverifiable ?? 0);
+
+      selectedClaimIndex = 0;
+      renderClaims(data.claims || []);
+    }
+
+    async function analyzeText() {
       const text = inputText.value.trim();
       if (!text) {
         alert('Please enter text to analyze.');
@@ -101,34 +445,37 @@
         const response = await fetch('/api/analyze', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text })
+          body: JSON.stringify({ text }),
         });
-        const data = await response.json();
 
+        const data = await response.json();
         if (!response.ok) {
           throw new Error(data.error || 'Analysis failed.');
         }
 
-        resultsPanel.classList.remove('hidden');
-
-        scoreText.textContent = Number(data.hallucination_score).toFixed(3);
-        riskBadge.textContent = data.risk_level;
-        riskBadge.className = `badge ${data.risk_level}`;
-        setWarning(data.warning_level, data.warning_message);
-
-        totalClaims.textContent = String(data.total_claims ?? 0);
-        supportedClaims.textContent = String(data.summary?.supported ?? 0);
-        contradictedClaims.textContent = String(data.summary?.contradicted ?? 0);
-        unverifiableClaims.textContent = String(data.summary?.unverifiable ?? 0);
-
-        fillClaims(data.claims || []);
+        populateResults(data);
       } catch (error) {
         alert(error.message || 'Unable to analyze text.');
       } finally {
         analyzeBtn.disabled = false;
-        analyzeBtn.textContent = 'Analyze';
+        analyzeBtn.textContent = 'Analyze hallucination risk';
       }
+    }
+
+    analyzeBtn.addEventListener('click', analyzeText);
+    demoBtn.addEventListener('click', () => {
+      inputText.value = demoText;
+      inputText.focus();
     });
+    clearBtn.addEventListener('click', () => {
+      inputText.value = '';
+      resultsPanel.classList.add('hidden');
+      currentClaims = [];
+      selectedClaimIndex = 0;
+      renderSelectedClaim();
+    });
+
+    inputText.value = demoText;
   </script>
 </body>
 </html>
