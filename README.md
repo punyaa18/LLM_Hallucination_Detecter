@@ -3,9 +3,13 @@
 
 Detect unsupported, contradictory, and unverifiable claims in LLM-generated text. The project combines claim extraction, evidence retrieval, NLI verification, hallucination scoring, and a modern research-style dashboard for visual inspection of results.
 
-![Pipeline diagram](Hallucinations%20in%20Local%20Large%20Language%20Models/figures/feature_architecture.png)
+<a href="Hallucinations%20in%20Local%20Large%20Language%20Models/figures/feature_architecture.png" target="_blank" rel="noreferrer">
+	<img src="Hallucinations%20in%20Local%20Large%20Language%20Models/figures/feature_architecture.png" alt="Pipeline diagram" />
+</a>
 
-![Consistency chart](Hallucinations%20in%20Local%20Large%20Language%20Models/figures/consistency_scores.png)
+<a href="Hallucinations%20in%20Local%20Large%20Language%20Models/figures/consistency_scores.png" target="_blank" rel="noreferrer">
+	<img src="Hallucinations%20in%20Local%20Large%20Language%20Models/figures/consistency_scores.png" alt="Consistency chart" />
+</a>
 
 ## What It Does
 

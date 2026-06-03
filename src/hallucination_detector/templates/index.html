@@ -98,11 +98,19 @@
             <h2>Detection pipeline</h2>
           </div>
         </div>
-        <img
-          class="artifact-image"
-          src="{{ url_for('static', filename='research_assets/feature_architecture.png') }}"
-          alt="Hallucination detection pipeline architecture"
-        />
+        <a
+          class="artifact-link"
+          href="{{ url_for('static', filename='research_assets/feature_architecture.png') }}"
+          target="_blank"
+          rel="noreferrer"
+          aria-label="Open pipeline architecture image in a new tab"
+        >
+          <img
+            class="artifact-image"
+            src="{{ url_for('static', filename='research_assets/feature_architecture.png') }}"
+            alt="Hallucination detection pipeline architecture"
+          />
+        </a>
       </article>
 
       <article class="card artifact-card">
@@ -112,11 +120,19 @@
             <h2>Consistency chart</h2>
           </div>
         </div>
-        <img
-          class="artifact-image"
-          src="{{ url_for('static', filename='research_assets/consistency_scores.png') }}"
-          alt="Model consistency scores chart"
-        />
+        <a
+          class="artifact-link"
+          href="{{ url_for('static', filename='research_assets/consistency_scores.png') }}"
+          target="_blank"
+          rel="noreferrer"
+          aria-label="Open consistency chart image in a new tab"
+        >
+          <img
+            class="artifact-image"
+            src="{{ url_for('static', filename='research_assets/consistency_scores.png') }}"
+            alt="Model consistency scores chart"
+          />
+        </a>
       </article>
     </section>
 
