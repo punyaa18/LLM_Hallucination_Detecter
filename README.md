@@ -1,5 +1,5 @@
 # LLM Hallucination Detector
-
+ Wrote a lil something :p -- https://medium.com/@punyaa184/why-ai-hallucinations-are-dangerous-349a5954cd34
 Detect unsupported, contradictory, and unverifiable claims in LLM-generated text. The project combines claim extraction, evidence retrieval, NLI verification, and scoring in a small local toolkit with both Streamlit and Flask entrypoints.
 
 ![Pipeline diagram](Hallucinations%20in%20Local%20Large%20Language%20Models/figures/feature_architecture.png)
